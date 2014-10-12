@@ -1,7 +1,8 @@
 ;; Copyright (C) 2014 Ben Lewis <benjf5@gmail.com>
 ;; Licensed under the MIT license; see included LICENSE file.
 
-(require 'cc-mode)
+(require 'cc-defs)
+(require 'cc-fonts)
 
 ;; define SAL faces
 (defface sal-function-param-face
@@ -16,6 +17,23 @@
      0 sal-function-param-face))
   ;; Capturing how SAL is represented in a regex is hard.
   "Keywords for annotating function parameters.")
+
+;; Here we start adding new cc-mode-based stuff to handle the fontifying
+(c-lang-defconst sal-nonparametric-function-param-annotation-kwds
+  c++ ("_In_" "_Inout_" "_In_opt_" "_Inout_opt_" "_In_z_" "_Inout_z_"
+       "_In_opt_z_" "_Inout_opt_z_" "_Out_" "_Out_opt_" "_Outptr_"
+       "_Outptr_opt_" "_Outptr_opt_result_z_" "_Outptr_opt_result_maybenull_"
+       "_Outptr_opt_result_nullonfailure_" "_Outptr_opt_result_maybenull_z_"
+       "_Outptr_opt_result_nullonfailure_z_" "_Outref_result_maybenull_"
+       "_Outref_result_nullonfailure_" "_Ret_null_" "_Ret_notnull_" "_Ret_z_"
+       "_Ret_maybenull_z_"))
+
+
+;;(c-lang-defconst sal-nonparametric-matchers
+;;  c++ `(,@(when (c-lang-const sal-nonparametric-function-param-annotation-kwds)
+            ;; this will need to eventually be extended to handle more complex
+            ;; cases than just 
+                  
 
 (defun sal-mode-add-font-locks ()
   (font-lock-add-keywords
