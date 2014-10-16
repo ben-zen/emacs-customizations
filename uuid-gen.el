@@ -9,11 +9,10 @@
 (random t)
 
 (defun uuid-gen-rand-num (mask)
-  "Strips the lower two bytes out of a randomly-generated value."
+  "Strips the lower two bytes out of a randomly-generated value, and masks the result."
   (logand (lsh (random) -16) mask))
 
-(defconst uuid-class-4
-  )
+;; Eventually, support multiple types of UUIDs. (defconst uuid-class-4)
 
 
 (defun uuid-create-class-4 ()
@@ -29,12 +28,12 @@
     (uuid-gen-rand-num #xff)
     (uuid-gen-rand-num #xff)
     (uuid-gen-rand-num #xff)
-    (uuid-gen-rand-num #xff)
-    (uuid-gen-rand-num #xff)
     (uuid-gen-rand-num #xff))))
 
-(defun uuid-generate-string (uuid)
+(defun uuid-print-string (uuid)
+  "Formats the supplied UUID as a string, complete with double quotes."
   (concat
+   "\""
    (format "%08X" (car uuid))
    "-"
    (format "%04X" (cadr uuid))
@@ -50,13 +49,42 @@
                           string
                         (concat (format "%02X" (car char-list))
                                 (funcall char-merge (cdr char-list) string))))))
-     (funcall char-merge uuid-chars ""))))
+     (funcall char-merge uuid-chars ""))
+   "\""))
+
+(defun uuid-print-win32-struct (uuid)
+  "Formats the supplied UUID as a Win32 GUID struct, i.e. { DWORD, WORD, WORD, CHAR[8] }."
+  (concat
+   "{ "
+   (format "0x%08X" (car uuid))
+   ", "
+   (format "0x%04X" (cadr uuid))
+   ", "
+   (format "0x%04X" (caddr uuid))
+   ", "
+   "{ "
+   (let ((third-short (cadddr uuid)))
+     (format "0x%02X, 0x%02X"
+             (lsh third-short -8) (logand third-short #xff)))
+   ", "
+   (let ((uuid-chars (car (cddddr uuid)))
+         (char-print (lambda (char-list)
+                       (if (null char-list)
+                           ""
+                         (concat (format "0x%02X%s"
+                                         (car char-list)
+                                         (if (null (cdr char-list))
+                                             ""
+                                           ", "))
+                                 (funcall char-print (cdr char-list)))))))
+     (funcall char-print uuid-chars))
+   " } }"))
 
 (defun insert-uuid ()
   "Generates a uuid (like '1F78D796-26FB-41C6-BCF3-E68AB900A627') and inserts it at the mark."
   (interactive)
   (insert
-   (uuid-generate-string (uuid-create-class-4))))
+   (uuid-print-string (uuid-create-class-4))))
 
 (provide 'uuid-gen)
 
