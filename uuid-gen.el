@@ -90,6 +90,11 @@
   (insert
    (uuid-print-string (uuid-create-class-4))))
 
+(defun insert-win32-uuid ()
+  "Generates a UUID and inserts it in Win32 struct format at the point."
+  (interactive)
+  (insert (uuid-print-win32-struct (uuid-create-class-4))))
+
 (provide 'uuid-gen)
 
 ;;; uuid-gen.el ends here
