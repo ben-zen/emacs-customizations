@@ -5,6 +5,7 @@
 ;; Author: Ben Lewis <benjf5@gmail.com>
 ;; Created: 13 Oct 2014
 ;; Keywords: tools
+;; Version: 0.1alpha
 
 (random t)
 
@@ -14,6 +15,9 @@
 
 ;; Eventually, support multiple types of UUIDs. (defconst uuid-class-4)
 
+(defun uuid-create-nil ()
+  "Returns the nil uuid, \"00000000-0000-0000-0000-000000000000\"."
+  '(0 0 0 0 (0 0 0 0 0 0)))
 
 (defun uuid-create-class-4 ()
   (list
