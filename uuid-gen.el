@@ -6,9 +6,13 @@
 ;; Author: Ben Lewis <benjf5@gmail.com>
 ;; Created: 13 Oct 2014
 ;; Keywords: tools
-;; Version: 0.1alpha2
+;; Version: 0.1alpha3
 
 (random t)
+
+(if (null (integer-or-marker-p #xffffff))
+    (error "This package requires an emacs installation with integers larger than 24 bits."))
+
 
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the result."
