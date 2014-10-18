@@ -13,13 +13,15 @@
 (if (null (integer-or-marker-p #xffffff))
     (error "This package requires an emacs installation with integers larger than 24 bits."))
 
+(defconst uuid-classes '(class-4 class-5)
+  "Classes of UUID supported by this library that can be generated.")
+
+(defconst uuid-bitness (+ (ceiling (log most-positive-fixnum 2)) 1)
+  "Checks the maximum integer size available in a live emacs instance, determining how UUIDs are stored internally.")
 
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the result."
   (logand (lsh (random) -16) mask))
-
-(defconst uuid-bitness (+ (ceiling (log most-positive-fixnum 2)) 1)
-  "Checks the maximum integer size available in a live emacs instance, determining how UUIDs are stored internally.")
 
 (defun uuid-gen-rand-word ()
   "Generate a random word (16-bit integer value)."
