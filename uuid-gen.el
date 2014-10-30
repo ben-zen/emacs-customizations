@@ -51,6 +51,35 @@
     (#x00 #xc0 #x4f #xd4 #x30 #xc8))
   "Used for generating a class 3 or 5 UUID where the name string is an X.500 DN (in DER or text format).")
 
+(defun uuid-generate-byte-string (uuid)
+  "Produce a sequence of bytes in a unibyte string that contains the same value as the uuid provided, with bytes ordered
+so that the lowest byte in each stanza is the first byte printed."
+  (concat
+   (let ((first-stanza (car uuid)))
+     (if (consp first-stanza)
+         (concat (byte-to-string (logand (cadr first-stanza) #xff))
+                 (byte-to-string (lsh (cadr first-stanza) -8))
+                 (byte-to-string (logand (car first-stanza) #xff))
+                 (byte-to-string (lsh (car first-stanza) -8)))
+       (concat (byte-to-string (logand first-stanza #xff))
+               (byte-to-string (logand (lsh first-stanza -8) #xff))
+               (byte-to-string (logand (lsh first-stanza -16) #xff))
+               (byte-to-string (lsh first-stanza -24)))))
+   (byte-to-string (logand (cadr uuid) #xff))
+   (byte-to-string (lsh (cadr uuid) -8))
+   (byte-to-string (logand (caddr uuid) #xff))
+   (byte-to-string (lsh (caddr uuid) -8))
+   (byte-to-string (logand (cadddr uuid) #xff))
+   (byte-to-string (lsh (cadddr uuid) -8))
+   (let ((uuid-node (car (cddddr uuid)))
+         (char-merge (lambda (char-list)
+                       (if (null char-list)
+                           ""
+                         (concat
+                          (byte-to-string (car char-list))
+                          (funcall char-merge (cdr char-list)))))))
+     (funcall char-merge uuid-node))))
+
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the result."
   (logand (lsh (random) -16) mask))
@@ -63,7 +92,7 @@
             (uuid-gen-rand-num #xff))))
 
 (defun uuid-gen-rand-dword ()
-"Generate a random double-word (32-bit value).
+  "Generate a random double-word (32-bit value).
 On systems with integer sizes smaller than 56 bits, return a list of two words.
 This leaves a large gap in-between the usual 64- and 32-bit implementations, but
 caution is preferable over undesirable consequences."
@@ -80,7 +109,7 @@ caution is preferable over undesirable consequences."
     '((0 0) 0 0 0 (0 0 0 0 0 0))))
 
 (defun uuid-create-class-4 ()
-"Generates a class 4 UUID; all stanzas are random except for the upper nybble
+  "Generates a class 4 UUID; all stanzas are random except for the upper nybble
 of the third stanza and the upper two bits of the fourth stanza."
   (list
    (uuid-gen-rand-dword)
