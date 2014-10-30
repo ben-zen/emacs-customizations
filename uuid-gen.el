@@ -19,6 +19,38 @@
 (defconst uuid-bitness (+ (ceiling (log most-positive-fixnum 2)) 1)
   "Checks the maximum integer size available in a live emacs instance, determining how UUIDs are stored internally.")
 
+(defconst uuid-namespace-dns
+  '((#x6ba7 #xb810)
+    #x9dad
+    #x11d1
+    #x80b4
+    (#x00 #xc0 #x4f #xd4 #x30 #xc8))
+  "Used for generating a class 3 or 5 UUID where the name string is a fully-qualified domain name.")
+
+(defconst uuid-namespace-url
+  '((#x6ba7 #xb811)
+    #x9dad
+    #x11d1
+    #x80b4
+    (#x00 #xc0 #x4f #xd4 #x30 #xc8))
+  "Used for generating a class 3 or 5 UUID where the name string is a URL.")
+
+(defconst uuid-namespace-iso-oid
+  '((#x6ba7 #xb812)
+    #x9dad
+    #x11d1
+    #x80b4
+    (#x00 #xc0 #x4f #xd4 #x30 #xc8))
+  "Used for generating a class 3 or 5 UUID where the name string is an ISO OID.")
+
+(defconst uuid-namespace-x500
+  '((#x6ba7 #xb814)
+    #x9dad
+    #x11d1
+    #x80b4
+    (#x00 #xc0 #x4f #xd4 #x30 #xc8))
+  "Used for generating a class 3 or 5 UUID where the name string is an X.500 DN (in DER or text format).")
+
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the result."
   (logand (lsh (random) -16) mask))
@@ -45,7 +77,7 @@ caution is preferable over undesirable consequences."
   "Returns the nil uuid, \"00000000-0000-0000-0000-000000000000\"."
   (if (>= uuid-bitness 56)
       '(0 0 0 0 (0 0 0 0 0 0))
-    '((0 0) 0 0 (0 0 0 0 0 0))))
+    '((0 0) 0 0 0 (0 0 0 0 0 0))))
 
 (defun uuid-create-class-4 ()
 "Generates a class 4 UUID; all stanzas are random except for the upper nybble
