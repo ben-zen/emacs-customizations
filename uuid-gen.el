@@ -51,34 +51,58 @@
     (#x00 #xc0 #x4f #xd4 #x30 #xc8))
   "Used for generating a class 3 or 5 UUID where the name string is an X.500 DN (in DER or text format).")
 
-(defun uuid-generate-byte-string (uuid)
-  "Produce a sequence of bytes in a unibyte string that contains the same value as the uuid provided, with bytes ordered
-so that the lowest byte in each stanza is the first byte printed."
+(defun uuid-generate-name-byte-string (name)
+  "Generate a sequence of bytes in network byte order representing the characters in the name provided, and has a
+potential to stack-overflow on very long names. Potential improvements may be necessary; currently also only a unibyte
+function."
+  (let ((name-list (string-to-list name))
+	(char-merge (lambda (char-list)
+		      (if (null char-list)
+			  ""
+			(concat
+			 (byte-to-string (car char-list))
+			 (funcall char-merge (cdr char-list)))))))
+    (funcall char-merge name-list)))
+
+(defun uuid-generate-uuid-byte-string (uuid)
+  "Produce a sequence of bytes in a unibyte string that contains the same value as the uuid provided, in network byte
+order."
   (concat
-   (let ((first-stanza (car uuid)))
+   (let ((first-stanza (car uuid))
+	 (second-stanza (car (cdr uuid)))
+	 (third-stanza (car (cddr uuid)))
+	 (fourth-stanza (car (cdr (cddr uuid))))
+	 (uuid-node (car (cddr (cddr uuid)))))
      (if (consp first-stanza)
-         (concat (byte-to-string (logand (cadr first-stanza) #xff))
-                 (byte-to-string (lsh (cadr first-stanza) -8))
-                 (byte-to-string (logand (car first-stanza) #xff))
-                 (byte-to-string (lsh (car first-stanza) -8)))
-       (concat (byte-to-string (logand first-stanza #xff))
-               (byte-to-string (logand (lsh first-stanza -8) #xff))
+         (concat (byte-to-string (lsh (cadr first-stanza) -8))
+                 (byte-to-string (logand (cadr first-stanza) #xff))
+                 (byte-to-string (lsh (car first-stanza) -8))
+                 (byte-to-string (logand (car first-stanza) #xff)))
+       (concat (byte-to-string (lsh first-stanza -24))
                (byte-to-string (logand (lsh first-stanza -16) #xff))
-               (byte-to-string (lsh first-stanza -24)))))
-   (byte-to-string (logand (cadr uuid) #xff))
-   (byte-to-string (lsh (cadr uuid) -8))
-   (byte-to-string (logand (caddr uuid) #xff))
-   (byte-to-string (lsh (caddr uuid) -8))
-   (byte-to-string (logand (cadddr uuid) #xff))
-   (byte-to-string (lsh (cadddr uuid) -8))
-   (let ((uuid-node (car (cddddr uuid)))
-         (char-merge (lambda (char-list)
+               (byte-to-string (logand (lsh first-stanza -8) #xff))
+               (byte-to-string (logand first-stanza #xff))))
+   (byte-to-string (lsh second-stanza -8))
+   (byte-to-string (logand second-stanza #xff))
+   (byte-to-string (lsh third-stanza -8))
+   (byte-to-string (logand third-stanza #xff))
+   (byte-to-string (lsh fourth-stanza -8))
+   (byte-to-string (logand fourth-stanza #xff))
+   (let ((char-merge (lambda (char-list)
                        (if (null char-list)
                            ""
                          (concat
                           (byte-to-string (car char-list))
                           (funcall char-merge (cdr char-list)))))))
-     (funcall char-merge uuid-node))))
+     (funcall char-merge uuid-node)))))
+
+(defun uuid-generate-hash (ns-uuid name hash-function)
+  "Generates a hash using the supplied hash function (accepts symbols 'md5, 'sha1.)"
+  (let ((hash-data (concat (uuid-generate-uuid-byte-string ns-uuid)
+			   (uuid-generate-name-byte-string name))))
+    (cond ((eq 'md5 hash-function) (md5 hash-data))
+	  ((eq 'sha1 hash-function) (sha1 hash-data))
+	  (t ""))))
 
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the result."
