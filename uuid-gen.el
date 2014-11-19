@@ -49,12 +49,14 @@
     #x11d1
     #x80b4
     (#x00 #xc0 #x4f #xd4 #x30 #xc8))
-  "Used for generating a class 3 or 5 UUID where the name string is an X.500 DN (in DER or text format).")
+  "Used for generating a class 3 or 5 UUID where the name string is an X.500 DN
+in DER or text format.")
 
 (defun uuid-generate-name-byte-string (name)
-  "Generate a sequence of bytes in network byte order representing the characters in the name provided, and has a
-potential to stack-overflow on very long names. Potential improvements may be necessary; currently also only a unibyte
-function."
+  "Generate a sequence of bytes in network byte order representing the
+characters in the name provided, and has a potential to stack-overflow on very
+long names. Potential improvements may be necessary; currently also only a
+unibyte function."
   (let ((name-list (string-to-list name))
 	(char-merge (lambda (char-list)
 		      (if (null char-list)
@@ -65,8 +67,8 @@ function."
     (funcall char-merge name-list)))
 
 (defun uuid-generate-uuid-byte-string (uuid)
-  "Produce a sequence of bytes in a unibyte string that contains the same value as the uuid provided, in network byte
-order."
+  "Produce a sequence of bytes in a unibyte string that contains the same value
+as the uuid provided, in network byte order."
   (concat
    (let ((first-stanza (car uuid))
 	 (second-stanza (car (cdr uuid)))
@@ -104,8 +106,20 @@ order."
 	  ((eq 'sha1 hash-function) (sha1 hash-data))
 	  (t ""))))
 
+(defun uuid-format-hash-as-uuid (hash)
+  "Takes the first 128 bytes of the provided hash (as a unibyte string) and
+constructs a UUID from them."
+  (let ((first-stanza-characters (substring hash 0 9))
+        (second-stanza-characters (substring hash 9 13))
+        (third-stanza-characters (substring hash 13 17))
+        (fourth-stanza-characters (substring hash 17 21))
+        (node-name-characters (substring hash 21 33)))
+    nil))
+        
+
 (defun uuid-gen-rand-num (mask)
-  "Strips the lower two bytes out of a randomly-generated value, and masks the result."
+  "Strips the lower two bytes out of a randomly-generated value, and masks the
+result."
   (logand (lsh (random) -16) mask))
 
 (defun uuid-gen-rand-word ()
@@ -207,7 +221,8 @@ of the third stanza and the upper two bits of the fourth stanza."
    " } }"))
 
 (defun insert-uuid ()
-  "Generates a Class 4 UUID (like \"1F78D796-26FB-41C6-BCF3-E68AB900A627\") and inserts it at the mark."
+  "Generates a Class 4 UUID (like \"1F78D796-26FB-41C6-BCF3-E68AB900A627\") and
+inserts it at the mark."
   (interactive)
   (insert
    (uuid-print-string (uuid-create-class-4))))
