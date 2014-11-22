@@ -106,16 +106,59 @@ as the uuid provided, in network byte order."
 	  ((eq 'sha1 hash-function) (sha1 hash-data))
 	  (t ""))))
 
-(defun uuid-format-hash-as-uuid (hash)
+(defun uuid-format-string-as-node-name (chars)
+  "Formats a list of 12 characters as a list of six bytes."
+  (let ((char-l (string-to-list chars))
+        (format-nodes (lambda (char-list)
+                        (if (null char-list)
+                            nil
+                          (cons
+                           (logior
+                            (lsh (string-to-number (string (car char-list)) 16) 4)
+                            (string-to-number (string (cadr char-list)) 16))
+                           (funcall format-nodes (cddr char-list)))))))
+    (funcall format-nodes char-l)))
+
+(defun uuid-format-string-as-short (chars)
+  "Formats a list of four characters as a 16-bit number."
+  (logior (lsh (string-to-number (substring chars 0 1) 16) 12)
+          (lsh (string-to-number (substring chars 1 2) 16) 8)
+          (lsh (string-to-number (substring chars 2 3) 16) 4)
+          (string-to-number (substring chars 3) 16)))
+
+(defun uuid-format-string-as-long (chars)
+  "Formats a list of eight characters as a 32-bit number; on systems that do not
+support 32-bit numbers, formats the list as two 16-bit numbers (first is high
+bits, second is low bits.)"
+  (if (>= uuid-bitness 56)
+      (logior (lsh (uuid-format-string-as-short (substring chars 0 4)) 16)
+              (uuid-format-string-as-short (substring chars 4))))
+    (list (uuid-format-string-as-short (substring chars 0 4))
+          (uuid-format-string-as-short (substring chars 4)))))
+
+(defun uuid-format-hash-as-uuid (hash hash-alg)
   "Takes the first 128 bytes of the provided hash (as a unibyte string) and
-constructs a UUID from them."
-  (let ((first-stanza-characters (substring hash 0 9))
-        (second-stanza-characters (substring hash 9 13))
-        (third-stanza-characters (substring hash 13 17))
-        (fourth-stanza-characters (substring hash 17 21))
-        (node-name-characters (substring hash 21 33)))
-    nil))
-        
+constructs a UUID from them; hash-alg may be either 'md5 or 'sha1."
+  (let ((first-stanza-characters (substring hash 0 8))
+        (second-stanza-characters (substring hash 8 12))
+        (third-stanza-characters (substring hash 12 16))
+        (fourth-stanza-characters (substring hash 16 20))
+        (node-name-characters (substring hash 20 32)))
+    (list
+     (uuid-format-string-as-long first-stanza-characters)
+     (uuid-format-string-as-short second-stanza-characters)
+     (logior
+      (logand (uuid-format-string-as-short third-stanza-characters)
+              #x0FFF)
+      (cond ((eq hash-alg 'md5) #x3000)
+            ((eq hash-alg 'sha1) #x5000)
+            (t
+             (error
+              "This function can only generate SHA-1 or MD5-based UUIDs."))))
+      (logior (logand (uuid-format-string-as-short fourth-stanza-characters)
+                      #x3FFF)
+              #x8000)
+          (uuid-format-string-as-node-name node-name-characters))))
 
 (defun uuid-gen-rand-num (mask)
   "Strips the lower two bytes out of a randomly-generated value, and masks the
