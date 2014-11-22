@@ -69,14 +69,14 @@ unibyte function."
 (defun uuid-generate-uuid-byte-string (uuid)
   "Produce a sequence of bytes in a unibyte string that contains the same value
 as the uuid provided, in network byte order."
-  (concat
-   (let ((first-stanza (car uuid))
-	 (second-stanza (car (cdr uuid)))
-	 (third-stanza (car (cddr uuid)))
-	 (fourth-stanza (car (cdr (cddr uuid))))
-	 (uuid-node (car (cddr (cddr uuid)))))
+  (let ((first-stanza (car uuid))
+	(second-stanza (car (cdr uuid)))
+	(third-stanza (car (cddr uuid)))
+	(fourth-stanza (car (cdr (cddr uuid))))
+	(uuid-node (car (cddr (cddr uuid)))))
+    (concat
      (if (consp first-stanza)
-         (concat (byte-to-string (lsh (cadr first-stanza) -8))
+	 (concat (byte-to-string (lsh (cadr first-stanza) -8))
                  (byte-to-string (logand (cadr first-stanza) #xff))
                  (byte-to-string (lsh (car first-stanza) -8))
                  (byte-to-string (logand (car first-stanza) #xff)))
@@ -84,19 +84,19 @@ as the uuid provided, in network byte order."
                (byte-to-string (logand (lsh first-stanza -16) #xff))
                (byte-to-string (logand (lsh first-stanza -8) #xff))
                (byte-to-string (logand first-stanza #xff))))
-   (byte-to-string (lsh second-stanza -8))
-   (byte-to-string (logand second-stanza #xff))
-   (byte-to-string (lsh third-stanza -8))
-   (byte-to-string (logand third-stanza #xff))
-   (byte-to-string (lsh fourth-stanza -8))
-   (byte-to-string (logand fourth-stanza #xff))
-   (let ((char-merge (lambda (char-list)
-                       (if (null char-list)
-                           ""
-                         (concat
-                          (byte-to-string (car char-list))
-                          (funcall char-merge (cdr char-list)))))))
-     (funcall char-merge uuid-node)))))
+     (byte-to-string (lsh second-stanza -8))
+     (byte-to-string (logand second-stanza #xff))
+     (byte-to-string (lsh third-stanza -8))
+     (byte-to-string (logand third-stanza #xff))
+     (byte-to-string (lsh fourth-stanza -8))
+     (byte-to-string (logand fourth-stanza #xff))
+     (let ((char-merge (lambda (char-list)
+			 (if (null char-list)
+			     ""
+			   (concat
+			    (byte-to-string (car char-list))
+			    (funcall char-merge (cdr char-list)))))))
+       (funcall char-merge uuid-node)))))
 
 (defun uuid-generate-hash (ns-uuid name hash-function)
   "Generates a hash using the supplied hash function (accepts symbols 'md5, 'sha1.)"
@@ -104,7 +104,7 @@ as the uuid provided, in network byte order."
 			   (uuid-generate-name-byte-string name))))
     (cond ((eq 'md5 hash-function) (md5 hash-data))
 	  ((eq 'sha1 hash-function) (sha1 hash-data))
-	  (t ""))))
+	  (t (error "Hash function not supported.")))))
 
 (defun uuid-format-string-as-node-name (chars)
   "Formats a list of 12 characters as a list of six bytes."
@@ -189,6 +189,10 @@ caution is preferable over undesirable consequences."
       '(0 0 0 0 (0 0 0 0 0 0))
     '((0 0) 0 0 0 (0 0 0 0 0 0))))
 
+(defun uuid-create-class-3 (ns-uuid name)
+  "Generates a class 3 UUID (MD5 hash) with the supplied namespace and name."
+  (uuid-format-hash-as-uuid (uuid-generate-hash ns-uuid name 'md5) 'md5))
+
 (defun uuid-create-class-4 ()
   "Generates a class 4 UUID; all stanzas are random except for the upper nybble
 of the third stanza and the upper two bits of the fourth stanza."
@@ -207,6 +211,10 @@ of the third stanza and the upper two bits of the fourth stanza."
     (uuid-gen-rand-num #xff)
     (uuid-gen-rand-num #xff))))
 
+(defun uuid-create-class-5 (ns-uuid name)
+  "Generates a class 5 UUID (SHA-1 hash) with the supplied namespace and name."
+  (uuid-format-hash-as-uuid (uuid-generate-hash ns-uuid name 'sha1) 'sha1))
+
 (defun uuid-print-string (uuid)
   "Formats the supplied UUID as a string, complete with enclosing double quotes."
   (concat
@@ -218,12 +226,12 @@ of the third stanza and the upper two bits of the fourth stanza."
    "-"
    (format "%04X" (cadr uuid))
    "-"
-   (format "%04X" (caddr uuid))
+   (format "%04X" (car (cddr uuid)))
    "-"
-   (format "%04X" (cadddr uuid))
+   (format "%04X" (cadr (cddr uuid)))
    "-"
    (let
-       ((uuid-chars (car (cddddr uuid)))
+       ((uuid-chars (car (cddr (cddr uuid))))
         (char-merge (lambda (char-list string)
                       (if (null char-list)
                           string
@@ -243,14 +251,14 @@ of the third stanza and the upper two bits of the fourth stanza."
    ", "
    (format "0x%04X" (cadr uuid))
    ", "
-   (format "0x%04X" (caddr uuid))
+   (format "0x%04X" (car (cddr uuid)))
    ", "
    "{ "
-   (let ((third-short (cadddr uuid)))
+   (let ((third-short (cadr (cddr uuid))))
      (format "0x%02X, 0x%02X"
              (lsh third-short -8) (logand third-short #xff)))
    ", "
-   (let ((uuid-chars (car (cddddr uuid)))
+   (let ((uuid-chars (car (cddr (cddr uuid))))
          (char-print (lambda (char-list)
                        (if (null char-list)
                            ""
